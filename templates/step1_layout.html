@@ -1,0 +1,97 @@
+<!-- templates/step1_layout.html -->
+{% extends "layout.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold text-center mb-2">座席レイアウト設定</h2>
+    <p class="text-center text-gray-500 mb-6">教室で使う座席をクリックして選択してください。（生徒数: {{ students|length }}人）</p>
+
+    <div class="text-center mb-4 p-3 bg-gray-800 text-white rounded-md font-bold">
+        教卓（黒板）
+    </div>
+
+    <div id="seat-grid" class="grid grid-cols-8 gap-2 mx-auto w-max mb-6">
+        <!-- JavaScriptでボタンを生成 -->
+    </div>
+    
+    <div class="flex justify-center items-center mb-6 space-x-4">
+        <div class="flex items-center"><div class="w-6 h-6 bg-blue-600 border-2 border-blue-800 rounded mr-2"></div><span>使用する座席</span></div>
+        <div class="flex items-center"><div class="w-6 h-6 bg-white border-2 border-gray-400 rounded mr-2"></div><span>使用しない座席</span></div>
+    </div>
+
+    <p class="text-center text-gray-600 mb-6">選択された座席数: <span id="selected-count" class="font-bold">0</span></p>
+
+    <form method="post" id="layout-form">
+        <input type="hidden" name="layout_data" id="layout-data">
+        <div class="flex justify-between items-center">
+            <a href="{{ url_for('index') }}" class="text-gray-600 hover:text-gray-800">&larr; 戻る</a>
+            <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300 text-lg">
+                次のステップへ進む &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grid = document.getElementById('seat-grid');
+    const selectedCountEl = document.getElementById('selected-count');
+    const layoutDataInput = document.getElementById('layout-data');
+    const form = document.getElementById('layout-form');
+    const studentCount = {{ students|length }};
+
+    let activeSeats = [];
+
+    const initialCols = 6;
+    let requiredRows = Math.ceil(studentCount / initialCols);
+    for (let r = 0; r < requiredRows; r++) {
+        for (let c = 0; c < initialCols; c++) {
+            if (r * initialCols + c < studentCount) {
+                activeSeats.push([r, c]);
+            }
+        }
+    }
+
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'seat-btn rounded-md';
+            button.dataset.row = r;
+            button.dataset.col = c;
+
+            if (activeSeats.some(pos => pos[0] === r && pos[1] === c)) {
+                button.classList.add('active');
+            }
+
+            button.addEventListener('click', function() {
+                this.classList.toggle('active');
+                updateActiveSeats();
+            });
+            grid.appendChild(button);
+        }
+    }
+
+    function updateActiveSeats() {
+        activeSeats = [];
+        const buttons = document.querySelectorAll('.seat-btn.active');
+        buttons.forEach(btn => {
+            activeSeats.push([parseInt(btn.dataset.row), parseInt(btn.dataset.col)]);
+        });
+        selectedCountEl.textContent = activeSeats.length;
+    }
+
+    form.addEventListener('submit', function(e) {
+        if (activeSeats.length < studentCount) {
+            e.preventDefault();
+            alert(`座席数が生徒数（${studentCount}人）より少ないです。${studentCount}席以上選択してください。`);
+            return;
+        }
+        layoutDataInput.value = JSON.stringify(activeSeats);
+    });
+
+    updateActiveSeats();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+<!-- templates/print.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>座席表印刷</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+        body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .print-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .seat-map {
+            display: grid;
+            gap: 5px;
+            border: 2px solid #333;
+            padding: 10px;
+            background-color: #f3f4f6;
+        }
+        .seat {
+            border: 2px solid #6b7280;
+            background-color: white;
+            border-radius: 8px;
+            padding: 4px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.3;
+            overflow: hidden;
+        }
+        .seat .romaji {
+            font-size: 9px;
+            font-weight: normal;
+            color: #6b7280;
+            display: block;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .seat .kana {
+            font-size: 10px;
+            font-weight: normal;
+            color: #4b5563;
+        }
+        .seat .kanji {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2937;
+            white-space: nowrap;
+        }
+        .blackboard {
+            background-color: #374151;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        .no-print { display: none; }
+        @media print { .no-print { display: none; } }
+        @media screen { .no-print { display: block; } }
+    </style>
+</head>
+<body class="bg-gray-200">
+
+    <div class="no-print fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg">
+        <h3 class="font-bold mb-2">印刷プレビュー</h3>
+        <p class="text-sm mb-4">このページを印刷してください。（Ctrl+P または Command+P）</p>
+        <button onclick="window.print()" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-700">
+            印刷する
+        </button>
+    </div>
+
+    <!-- 黒板が上バージョン -->
+    <div class="print-container p-4">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-center">座席表</h2>
+            <p class="text-lg text-gray-600">{{ date }}</p>
+        </div>
+        <div class="blackboard mb-4">教卓</div>
+        <div class="seat-map" style="grid-template-columns: repeat({{ cols }}, 1fr);">
+            {% for r in range(rows) %}
+                {% for c in range(cols) %}
+                    {% if (r,c) in arrangement %}
+                        {% set student = arrangement.get((r, c)) %}
+                        <div class="seat">
+                            {% if student %}
+                                {% if student.name_en %}<span class="romaji">{{ student.name_en }}</span>{% endif %}
+                                <span class="kana">{{ student.name_kana }}</span>
+                                <span class="kanji">{{ student.name }}</span>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div style="page-break-after: always;"></div>
+
+    <!-- 黒板が下バージョン -->
+    <div class="print-container p-4">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold text-center">座席表（教員目線）</h2>
+            <p class="text-lg text-gray-600">{{ date }}</p>
+        </div>
+        <div class="seat-map" style="grid-template-columns: repeat({{ cols }}, 1fr);">
+             {% for r in range(rows - 1, -1, -1) %}
+                {% for c in range(cols -1, -1, -1) %}
+                    {% if (r,c) in arrangement %}
+                        {% set student = arrangement.get((r, c)) %}
+                        <div class="seat">
+                            {% if student %}
+                                {% if student.name_en %}<span class="romaji">{{ student.name_en }}</span>{% endif %}
+                                <span class="kana">{{ student.name_kana }}</span>
+                                <span class="kanji">{{ student.name }}</span>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        <div class="blackboard mt-4">教卓</div>
+    </div>
+
+</body>
+</html>

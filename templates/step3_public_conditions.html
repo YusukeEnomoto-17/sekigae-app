@@ -1,0 +1,101 @@
+<!-- templates/step3_public_conditions.html -->
+{% extends "layout.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold text-center mb-6">📢 座席の希望</h2>
+    <p class="text-center text-gray-500 mb-6">特別な配慮が必要な場合は、ここで設定します。</p>
+
+    <form method="post" id="conditions-form">
+        <!-- 公開条件 -->
+        <div class="mb-8 p-6 border border-gray-200 rounded-lg">
+             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 最前列希望 -->
+                <div>
+                    <h4 class="font-semibold text-lg mb-2">👓 最前列が良い生徒</h4>
+                    <div class="w-full h-40 border rounded-md p-2 overflow-y-auto bg-white">
+                        {% for s in students %}<label class="flex items-center p-1 hover:bg-gray-100 rounded"><input type="checkbox" name="public_front_row_list" value="{{ s.id }}" {% if s.id in constraints.get('public_front', []) %}checked{% endif %} class="mr-2 h-4 w-4">{{ s.name }}</label>{% endfor %}
+                    </div>
+                </div>
+                <!-- 最後列希望 -->
+                <div>
+                    <h4 class="font-semibold text-lg mb-2">🦒 最後列が良い生徒</h4>
+                    <div class="w-full h-40 border rounded-md p-2 overflow-y-auto bg-white">
+                        {% for s in students %}<label class="flex items-center p-1 hover:bg-gray-100 rounded"><input type="checkbox" name="public_back_row_list" value="{{ s.id }}" {% if s.id in constraints.get('public_back', []) %}checked{% endif %} class="mr-2 h-4 w-4">{{ s.name }}</label>{% endfor %}
+                    </div>
+                </div>
+                <!-- 席から除外 -->
+                <div>
+                    <h4 class="font-semibold text-lg mb-2">✈️ 席替えから除く生徒</h4>
+                    <p class="text-sm text-gray-600 mb-1">留学中など、今回席が不要な生徒。</p>
+                    <div class="w-full h-40 border rounded-md p-2 overflow-y-auto bg-white">
+                        {% for s in students %}<label class="flex items-center p-1 hover:bg-gray-100 rounded"><input type="checkbox" name="exclude_list" value="{{ s.id }}" {% if s.id in constraints.get('exclude', []) %}checked{% endif %} class="mr-2 h-4 w-4">{{ s.name }}</label>{% endfor %}
+                    </div>
+                </div>
+             </div>
+        </div>
+        
+        <!-- 座席固定 -->
+        <div class="p-6 border border-gray-200 rounded-lg">
+            <h3 class="text-xl font-bold text-gray-700 mb-4">📌 座席を固定する生徒</h3>
+            <p class="text-sm text-gray-600 mb-3">特別な事情で座席を固定したい生徒を選択し、座席を指定してください。</p>
+            <div class="flex gap-4">
+                <select id="fixed-student-select" class="border rounded-md p-2">
+                    <option value="">生徒を選択...</option>
+                    {% for s in students %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+                </select>
+                <select id="fixed-seat-select" class="border rounded-md p-2">
+                    <option value="">座席を選択...</option>
+                    {% for seat in active_seats %}
+                    <option value="[{{seat[0]}},{{seat[1]}}]">(タテ{{seat[0]+1}}, ヨコ{{seat[1]+1}})</option>
+                    {% endfor %}
+                </select>
+                <button type="button" id="add-fixed-seat" class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">追加</button>
+            </div>
+            <ul id="fixed-seat-list" class="mt-4 list-disc list-inside"></ul>
+        </div>
+
+        <input type="hidden" name="fixed_seat_list" id="fixed-seat-list-data">
+
+        <div class="flex justify-between items-center mt-8">
+            <a href="{{ url_for('step2_secret_conditions') }}" class="text-gray-600 hover:text-gray-800">&larr; 戻る</a>
+            <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300 text-lg">
+                席替えを実行する！ &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fixedSeatList = document.getElementById('fixed-seat-list');
+    document.getElementById('add-fixed-seat').addEventListener('click', () => {
+        const studentSelect = document.getElementById('fixed-student-select');
+        const seatSelect = document.getElementById('fixed-seat-select');
+        const studentId = studentSelect.value;
+        const studentName = studentSelect.options[studentSelect.selectedIndex].text;
+        const seatPos = seatSelect.value;
+        const seatText = seatSelect.options[seatSelect.selectedIndex].text;
+        if (!studentId || !seatPos) { alert('生徒と座席の両方を選択してください。'); return; }
+        const li = document.createElement('li');
+        li.textContent = `${studentName} → ${seatText}`;
+        li.dataset.fixed = JSON.stringify({ student_id: parseInt(studentId), pos: JSON.parse(seatPos) });
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = '✖';
+        removeBtn.className = 'ml-2 text-red-500';
+        removeBtn.onclick = () => li.remove();
+        li.appendChild(removeBtn);
+        fixedSeatList.appendChild(li);
+        studentSelect.value = '';
+        seatSelect.value = '';
+    });
+    
+    const form = document.getElementById('conditions-form');
+    form.addEventListener('submit', (e) => {
+        document.getElementById('fixed-seat-list-data').value = JSON.stringify(Array.from(document.querySelectorAll('#fixed-seat-list li')).map(li => JSON.parse(li.dataset.fixed)));
+    });
+});
+</script>
+{% endblock %}
