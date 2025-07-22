@@ -133,10 +133,10 @@ def index():
         student_data_str = request.form.get('student_data', '')
         session['students_original'] = parse_student_data(student_data_str)
         if not session['students_original']:
-            return render_template('index.html', error="データを正しく読み込めませんでした。形式を確認してください。", show_teacher_warning=True)
+            return render_template('index.html', error="データを正しく読み込めませんでした。形式を確認してください。")
         return redirect(url_for('step1_layout'))
     session.clear()
-    return render_template('index.html', show_teacher_warning=True)
+    return render_template('index.html')
 
 @app.route('/setup/step1_layout', methods=['GET', 'POST'])
 def step1_layout():
@@ -144,7 +144,7 @@ def step1_layout():
     if request.method == 'POST':
         session['active_seats'] = json.loads(request.form.get('layout_data'))
         return redirect(url_for('step2_secret_conditions'))
-    return render_template('step1_layout.html', students=session['students_original'], show_teacher_warning=True)
+    return render_template('step1_layout.html', students=session['students_original'])
 
 @app.route('/setup/step2_secret_conditions', methods=['GET', 'POST'])
 def step2_secret_conditions():
@@ -162,8 +162,7 @@ def step2_secret_conditions():
     
     return render_template('step2_secret_conditions.html', 
                            students=session['students_original'], 
-                           constraints=session.get('constraints', {}),
-                           show_teacher_warning=True)
+                           constraints=session.get('constraints', {}))
 
 @app.route('/setup/step3_public_conditions', methods=['GET', 'POST'])
 def step3_public_conditions():
@@ -242,6 +241,71 @@ def api_generate_arrangements():
     randoms_json = [[{'pos': pos, 'student': get_student_by_id(students, sid)} for pos, sid in rnd.items()] for rnd in randoms]
     
     return jsonify({'solutions': solutions_json, 'randoms': randoms_json})
+
+# ★★★ 新しいルートを追加 ★★★
+@app.route('/ordered_arrangement', methods=['POST'])
+def ordered_arrangement():
+    """出席番号順の配置を生成する"""
+    if 'constraints' not in session: return redirect(url_for('index'))
+    
+    # 最新の制約をフォームから取得
+    constraints = session.get('constraints', {})
+    constraints.update({
+        'public_front': [int(sid) for sid in request.form.getlist('public_front_row_list')],
+        'public_back': [int(sid) for sid in request.form.getlist('public_back_row_list')],
+        'fixed': json.loads(request.form.get('fixed_seat_list', '[]')),
+        'exclude': [int(sid) for sid in request.form.getlist('exclude_list')],
+    })
+    session['constraints'] = constraints
+    final_constraints = get_final_constraints()
+
+    # 席が必要な生徒を確定
+    excluded_ids = set(final_constraints.get('exclude', []))
+    students_needing_seats = [s for s in session['students_original'] if s['id'] not in excluded_ids]
+    
+    # 座席数チェック
+    if len(session['active_seats']) < len(students_needing_seats):
+        num_seats = len(session['active_seats'])
+        num_students = len(students_needing_seats)
+        error_msg = f"座席数は{num_seats}個、生徒数は{num_students}人で一致しません。座席指定をし直すか、除外生徒を選択してください。"
+        return render_template('step3_public_conditions.html', 
+                               students=session['students_original'], 
+                               active_seats=session['active_seats'], 
+                               constraints=session.get('constraints', {}),
+                               error=error_msg)
+
+    # 席をタテ（列）優先でソート
+    sorted_seats = sorted(session['active_seats'], key=lambda pos: (pos[1], pos[0]))
+    # 生徒を出席番号順でソート
+    sorted_students = sorted(students_needing_seats, key=lambda s: int(s['number']))
+
+    front_sids = set(final_constraints.get('front', []))
+    back_sids = set(final_constraints.get('back', []))
+
+    # 前・後・中央のグループに分ける
+    front_students = [s for s in sorted_students if s['id'] in front_sids]
+    back_students = [s for s in sorted_students if s['id'] in back_sids]
+    middle_students = [s for s in sorted_students if s['id'] not in front_sids and s['id'] not in back_sids]
+
+    # 席に配置
+    final_arrangement_dict = {}
+    seat_idx = 0
+    for student in front_students:
+        final_arrangement_dict[tuple(sorted_seats[seat_idx])] = student
+        seat_idx += 1
+    for student in middle_students:
+        final_arrangement_dict[tuple(sorted_seats[seat_idx])] = student
+        seat_idx += 1
+    # 後ろから配置するために、最後列生徒は逆順ソート
+    back_students.reverse()
+    for i, student in enumerate(back_students):
+        final_arrangement_dict[tuple(sorted_seats[-(i+1)])] = student
+    
+    # セッションに保存する形式に変換
+    session['final_arrangement'] = [{'pos': pos, 'student': student} for pos, student in final_arrangement_dict.items()]
+    
+    return redirect(url_for('print_view'))
+
 
 @app.route('/api/verify_arrangement')
 def api_verify_arrangement():

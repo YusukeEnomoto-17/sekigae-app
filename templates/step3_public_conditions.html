@@ -62,11 +62,17 @@
 
         <input type="hidden" name="fixed_seat_list" id="fixed-seat-list-data">
 
-        <div class="flex justify-between items-center mt-8">
+        <div class="flex flex-wrap justify-between items-center mt-8 gap-4">
             <a href="{{ url_for('step2_secret_conditions') }}" class="text-gray-600 hover:text-gray-800">&larr; 戻る</a>
-            <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300 text-lg">
-                席替えを実行する！ &rarr;
-            </button>
+            <div class="flex flex-wrap gap-4">
+                <!-- ★★★ 新しいボタンを追加 ★★★ -->
+                <button type="submit" formaction="{{ url_for('ordered_arrangement') }}" class="bg-gray-600 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-700 transition-colors duration-300 text-lg">
+                    左前から出席番号順
+                </button>
+                <button type="submit" formaction="{{ url_for('step3_public_conditions') }}" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 transition-colors duration-300 text-lg">
+                    ランダム席替えを実行 &rarr;
+                </button>
+            </div>
         </div>
     </form>
 </div>
@@ -99,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     const form = document.getElementById('conditions-form');
+    // フォーム送信時に固定席のデータをhidden inputに設定
     form.addEventListener('submit', (e) => {
         document.getElementById('fixed-seat-list-data').value = JSON.stringify(Array.from(document.querySelectorAll('#fixed-seat-list li')).map(li => JSON.parse(li.dataset.fixed)));
     });
