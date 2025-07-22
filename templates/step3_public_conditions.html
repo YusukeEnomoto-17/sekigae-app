@@ -65,7 +65,6 @@
         <div class="flex flex-wrap justify-between items-center mt-8 gap-4">
             <a href="{{ url_for('step2_secret_conditions') }}" class="text-gray-600 hover:text-gray-800">&larr; 戻る</a>
             <div class="flex flex-wrap gap-4">
-                <!-- ★★★ 新しいボタンを追加 ★★★ -->
                 <button type="submit" formaction="{{ url_for('ordered_arrangement') }}" class="bg-gray-600 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-700 transition-colors duration-300 text-lg">
                     左前から出席番号順
                 </button>
@@ -105,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     const form = document.getElementById('conditions-form');
-    // フォーム送信時に固定席のデータをhidden inputに設定
     form.addEventListener('submit', (e) => {
         document.getElementById('fixed-seat-list-data').value = JSON.stringify(Array.from(document.querySelectorAll('#fixed-seat-list li')).map(li => JSON.parse(li.dataset.fixed)));
     });
