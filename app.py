@@ -15,9 +15,8 @@ def parse_student_data(data_string):
     students = []
     lines = data_string.strip().split('\n')
     for i, line in enumerate(lines):
-        # Excelからのコピペを想定し、タブと複数のスペースの両方に対応
         parts = [p.strip() for p in line.replace('　', '\t').split('\t')]
-        parts = [p for p in parts if p] # 空の要素を削除
+        parts = [p for p in parts if p]
         if len(parts) >= 3:
             student = {
                 'id': i + 1,
@@ -178,12 +177,14 @@ def step3_public_conditions():
         })
         session['constraints'] = constraints
         
-        # ★★★ バリデーション追加 ★★★
         excluded_ids = set(constraints.get('exclude', []))
         students_needing_seats = [s for s in session['students_original'] if s['id'] not in excluded_ids]
         
+        # ★★★ バリデーション修正 ★★★
         if len(session['active_seats']) < len(students_needing_seats):
-            error_msg = f"座席数が足りません！(必要: {len(students_needing_seats)}席, 選択: {len(session['active_seats'])}席)"
+            num_seats = len(session['active_seats'])
+            num_students = len(students_needing_seats)
+            error_msg = f"座席数は{num_seats}個、生徒数は{num_students}人で一致しません。座席指定をし直すか、除外生徒を選択してください。"
             return render_template('step3_public_conditions.html', 
                                    students=session['students_original'], 
                                    active_seats=session['active_seats'], 
