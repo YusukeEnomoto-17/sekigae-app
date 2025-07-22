@@ -18,6 +18,12 @@
             <h1 class="text-3xl md:text-4xl font-bold text-gray-700">インテリジェント席替えメーカー</h1>
         </header>
         <main>
+            {% if show_teacher_warning %}
+            <div class="max-w-4xl mx-auto bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+                <p class="font-bold">教員向けメッセージ</p>
+                <p>※この画面は教員PCだけで扱ってください。生徒に見せるのは「公開設定」と「席替えルーレット」の画面だけです。</p>
+            </div>
+            {% endif %}
             {% block content %}{% endblock %}
         </main>
         <footer class="text-center mt-12 text-sm text-gray-400">

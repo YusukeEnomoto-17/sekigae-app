@@ -133,10 +133,10 @@ def index():
         student_data_str = request.form.get('student_data', '')
         session['students_original'] = parse_student_data(student_data_str)
         if not session['students_original']:
-            return render_template('index.html', error="データを正しく読み込めませんでした。形式を確認してください。")
+            return render_template('index.html', error="データを正しく読み込めませんでした。形式を確認してください。", show_teacher_warning=True)
         return redirect(url_for('step1_layout'))
     session.clear()
-    return render_template('index.html')
+    return render_template('index.html', show_teacher_warning=True)
 
 @app.route('/setup/step1_layout', methods=['GET', 'POST'])
 def step1_layout():
@@ -144,7 +144,7 @@ def step1_layout():
     if request.method == 'POST':
         session['active_seats'] = json.loads(request.form.get('layout_data'))
         return redirect(url_for('step2_secret_conditions'))
-    return render_template('step1_layout.html', students=session['students_original'])
+    return render_template('step1_layout.html', students=session['students_original'], show_teacher_warning=True)
 
 @app.route('/setup/step2_secret_conditions', methods=['GET', 'POST'])
 def step2_secret_conditions():
@@ -162,7 +162,8 @@ def step2_secret_conditions():
     
     return render_template('step2_secret_conditions.html', 
                            students=session['students_original'], 
-                           constraints=session.get('constraints', {}))
+                           constraints=session.get('constraints', {}),
+                           show_teacher_warning=True)
 
 @app.route('/setup/step3_public_conditions', methods=['GET', 'POST'])
 def step3_public_conditions():
@@ -180,7 +181,6 @@ def step3_public_conditions():
         excluded_ids = set(constraints.get('exclude', []))
         students_needing_seats = [s for s in session['students_original'] if s['id'] not in excluded_ids]
         
-        # ★★★ バリデーション修正 ★★★
         if len(session['active_seats']) < len(students_needing_seats):
             num_seats = len(session['active_seats'])
             num_students = len(students_needing_seats)
