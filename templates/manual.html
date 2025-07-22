@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インテリジェント席替えメーカー インフォグラフィック</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .flow-arrow {
+            font-size: 2.5rem;
+            color: #8AC4EC;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="text-center my-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#00449E]">インテリジェント席替えメーカー</h1>
+            <p class="mt-4 text-lg text-gray-600">複雑な条件も、面倒な作業も、AIがすべて解決。<br>公平で楽しい席替えを、驚くほどシンプルに。</p>
+        </header>
+
+        <section id="steps" class="my-16">
+            <h2 class="text-3xl font-bold text-center text-[#005CB9] mb-8">かんたん3ステップ設定</h2>
+            <div class="grid grid-cols-1 md:grid-cols-5 items-center gap-4 text-center">
+                <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col justify-center">
+                    <div class="text-5xl mb-2">📋</div>
+                    <h3 class="text-xl font-bold text-[#00449E]">STEP 1</h3>
+                    <p class="text-gray-600">名簿をコピー＆ペースト</p>
+                </div>
+                <div class="flow-arrow transform md:-rotate-0 rotate-90">→</div>
+                <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col justify-center">
+                    <div class="text-5xl mb-2">🖥️</div>
+                    <h3 class="text-xl font-bold text-[#00449E]">STEP 2</h3>
+                    <p class="text-gray-600">座席レイアウトを選択</p>
+                </div>
+                <div class="flow-arrow transform md:-rotate-0 rotate-90">→</div>
+                <div class="bg-white p-6 rounded-lg shadow-md h-full flex flex-col justify-center">
+                    <div class="text-5xl mb-2">⚙️</div>
+                    <h3 class="text-xl font-bold text-[#00449E]">STEP 3</h3>
+                    <p class="text-gray-600">詳細な条件を設定</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="my-16">
+            <h2 class="text-3xl font-bold text-center text-[#005CB9] mb-8">多様なニーズに応える、パワフルな条件設定</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-[#0075D4] mb-4">人間関係への配慮（非公開）</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="text-2xl mr-3">💔</span> <span>特定の生徒同士を「離す」設定</span></li>
+                        <li class="flex items-start"><span class="text-2xl mr-3">💖</span> <span>特定の生徒同士を「くっつける」設定</span></li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-[#0075D4] mb-4">座席位置への配慮</h3>
+                     <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="text-2xl mr-3">👓</span> <span>視力等の都合で「最前列」を希望</span></li>
+                        <li class="flex items-start"><span class="text-2xl mr-3">🦒</span> <span>身長等の都合で「最後列」を希望</span></li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-[#0075D4] mb-4">特別な事情への配慮</h3>
+                     <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="text-2xl mr-3">📌</span> <span>特定の席に「固定する」生徒</span></li>
+                        <li class="flex items-start"><span class="text-2xl mr-3">✈️</span> <span>留学などで「席替えから除く」生徒</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="ai-deep-dive" class="my-16">
+            <h2 class="text-3xl font-bold text-center text-[#005CB9] mb-8">AIの仕組みを大解剖</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-center text-[#0075D4] mb-4">100%条件を満たすまで最適化</h3>
+                    <p class="text-gray-600 mb-4">AIは、設定された全ての条件に「違反点」を付け、その合計がゼロになるまで、数千回のシミュレーションを行い、生徒の配置を入れ替え続けます。</p>
+                    <div class="text-center text-6xl font-bold text-[#00449E]">100%</div>
+                    <p class="text-center text-gray-600 font-bold">条件達成</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-xl font-bold text-center text-[#0075D4] mb-4">公平なルーレットの秘密</h3>
+                    <p class="text-gray-600 mb-4">ルーレットでは、条件を100%満たした「完璧な席替え案」と、演出用の「ダミー案」が混ざって表示されますが、最終的に選ばれるのは必ず「完璧な席替え案」です。</p>
+                    <div class="chart-container w-full max-w-xs mx-auto h-64">
+                        <canvas id="rouletteChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="security" class="my-16">
+            <h2 class="text-3xl font-bold text-center text-[#005CB9] mb-8">安心のセキュリティとプライバシー保護</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                    <div class="text-6xl mb-4">🔒</div>
+                    <h3 class="text-xl font-bold text-[#0075D4]">暗号化と自動データ消去</h3>
+                    <p class="mt-2 text-gray-600">入力された名簿情報は暗号化されて通信され、ブラウザを閉じるとサーバーから自動的に消去されます。</p>
+                </div>
+                <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                    <div class="text-6xl mb-4">👥</div>
+                    <h3 class="text-xl font-bold text-[#0075D4]">複数人での同時利用に対応</h3>
+                    <p class="mt-2 text-gray-600">他の先生が同時に利用しても、データは完全に独立して管理されるため、情報が混ざることはありません。</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center my-12">
+            <p class="text-gray-600">さあ、今すぐインテリジェントな席替えを体験しましょう。</p>
+
+            <!-- ★★★ 注意書きを追加 ★★★ -->
+            <div class="mt-12 border-t pt-6 max-w-3xl mx-auto text-left text-xs text-gray-500">
+                <p class="font-bold">※「AI」という表現について</p>
+                <p class="mt-2">
+                    このツールでは便宜上「AI」と表現していますが、厳密には機械学習などを行ったAIではありません。実際には、事前に決められたアルゴリズムに従って地道な計算処理を行っています。その中身は、①とりあえずランダムに並べ、②指定に合わせて入れ替えを行い、③条件を満たしているかチェックする、といった処理を高速で繰り返しているだけです。
+                    ただ、生徒たちに公平性や納得感を持ってもらうために、比喩として「AI」という言葉を使うのが効果的な場面もあるでしょう。
+                </p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        const ctx = document.getElementById('rouletteChart').getContext('2d');
+        const rouletteChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['完璧な席替え案', 'ダミーのランダム案'],
+                datasets: [{
+                    label: 'ルーレットの内訳',
+                    data: [5, 15],
+                    backgroundColor: [
+                        '#005CB9',
+                        '#8AC4EC'
+                    ],
+                    borderColor: [
+                        '#FFFFFF',
+                        '#FFFFFF'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) {
+                                  return label.join(' ');
+                                } else {
+                                  return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

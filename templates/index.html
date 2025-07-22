@@ -28,6 +28,13 @@
             <span>ここで送信される名簿情報は暗号化されて処理され、画面を閉じるとサーバーから自動的に消去されます。</span>
         </div>
 
+        <!-- ★★★ 新しいボタンを追加 ★★★ -->
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('manual') }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                ？ このツールのつかいかた
+            </a>
+        </div>
+
         <button type="submit" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-300 text-lg">
             次のステップへ進む &rarr;
         </button>
