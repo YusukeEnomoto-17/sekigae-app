@@ -1,7 +1,10 @@
 <!-- templates/index.html -->
 {% extends "layout.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
+<div class.max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold text-center mb-2">生徒名簿の入力</h2>
+    <p class="text-center text-gray-500 mb-6">Excelやスプレッドシートから、名簿をそのままコピー＆ペーストしてください。</p>
+    
     {% if error %}
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
             <strong class="font-bold">エラー:</strong>
@@ -13,8 +16,8 @@
         <div class="mb-4">
             <label for="student_data" class="block text-sm font-medium text-gray-700 mb-2">データ形式:</label>
             <div class="bg-gray-100 p-3 rounded-md text-sm text-gray-600">
-                <p>1行に1人の生徒情報を、以下の順で<strong class="text-blue-600">タブ区切り</strong>で入力してください。</p>
-                <p class="mt-1"><code>出席番号 (タブ) 漢字氏名 (タブ) カタカナ氏名 (タブ) ローマ字氏名(任意)</code></p>
+                <p>以下の順でデータが並んでいる必要があります。</p>
+                <p class="mt-1"><code>出席番号&emsp;漢字氏名&emsp;カタカナ氏名&emsp;ローマ字氏名(任意)</code></p>
                 <p class="mt-2"><strong>例:</strong><br>1&emsp;山田 太郎&emsp;ヤマダ タロウ&emsp;Yamada Taro<br>2&emsp;鈴木 花子&emsp;スズキ ハナコ</p>
             </div>
         </div>

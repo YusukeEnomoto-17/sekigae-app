@@ -15,7 +15,9 @@ def parse_student_data(data_string):
     students = []
     lines = data_string.strip().split('\n')
     for i, line in enumerate(lines):
-        parts = [p.strip() for p in line.split('\t')]
+        # Excelからのコピペを想定し、タブと複数のスペースの両方に対応
+        parts = [p.strip() for p in line.replace('　', '\t').split('\t')]
+        parts = [p for p in parts if p] # 空の要素を削除
         if len(parts) >= 3:
             student = {
                 'id': i + 1,
@@ -62,45 +64,31 @@ class SeatingArranger:
         score = 0
         student_positions = {sid: pos for pos, sid in arrangement.items() if sid is not None}
         
-        # 離したいペアの評価
         for pair in self.constraints.get('apart', []):
             pos1, pos2 = student_positions.get(pair[0]), student_positions.get(pair[1])
-            if pos1 and pos2 and pos2 in get_neighbors(pos1[0], pos1[1], self.seat_map):
-                score += 10
+            if pos1 and pos2 and pos2 in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
         
-        # くっつけたいペアの評価
         for pair in self.constraints.get('together', []):
             pos1, pos2 = student_positions.get(pair[0]), student_positions.get(pair[1])
-            if pos1 and pos2 and pos2 not in get_neighbors(pos1[0], pos1[1], self.seat_map):
-                score += 10
+            if pos1 and pos2 and pos2 not in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
         
-        # ★★★ アルゴリズム改善箇所 ★★★
         if self.active_seats:
-            # 利用する座席を前から順にソート（タテ→ヨコの順）
             sorted_seats = sorted(list(self.active_seats))
-
-            # 最前列エリアの評価
             front_student_ids = self.constraints.get('front', [])
             num_front_students = len(front_student_ids)
             if num_front_students > 0:
-                # 前からN席を「最前列エリア」と定義する
                 front_section_seats = set(sorted_seats[:num_front_students])
                 for sid in front_student_ids:
                     student_pos = student_positions.get(sid)
-                    if student_pos and student_pos not in front_section_seats:
-                        score += 1 # エリア外にいたらペナルティ
+                    if student_pos and student_pos not in front_section_seats: score += 1
 
-            # 最後列エリアの評価
             back_student_ids = self.constraints.get('back', [])
             num_back_students = len(back_student_ids)
             if num_back_students > 0:
-                # 後ろからN席を「最後列エリア」と定義する
                 back_section_seats = set(sorted_seats[-num_back_students:])
                 for sid in back_student_ids:
                     student_pos = student_positions.get(sid)
-                    if student_pos and student_pos not in back_section_seats:
-                        score += 1 # エリア外にいたらペナルティ
-        
+                    if student_pos and student_pos not in back_section_seats: score += 1
         return score
 
     def generate_initial_arrangement(self):
@@ -146,7 +134,7 @@ def index():
         student_data_str = request.form.get('student_data', '')
         session['students_original'] = parse_student_data(student_data_str)
         if not session['students_original']:
-            return render_template('index.html', error="正しい形式でデータを入力してください。")
+            return render_template('index.html', error="データを正しく読み込めませんでした。形式を確認してください。")
         return redirect(url_for('step1_layout'))
     session.clear()
     return render_template('index.html')
@@ -189,8 +177,20 @@ def step3_public_conditions():
             'exclude': [int(sid) for sid in request.form.getlist('exclude_list')],
         })
         session['constraints'] = constraints
+        
+        # ★★★ バリデーション追加 ★★★
         excluded_ids = set(constraints.get('exclude', []))
-        session['students'] = [s for s in session['students_original'] if s['id'] not in excluded_ids]
+        students_needing_seats = [s for s in session['students_original'] if s['id'] not in excluded_ids]
+        
+        if len(session['active_seats']) < len(students_needing_seats):
+            error_msg = f"座席数が足りません！(必要: {len(students_needing_seats)}席, 選択: {len(session['active_seats'])}席)"
+            return render_template('step3_public_conditions.html', 
+                                   students=session['students_original'], 
+                                   active_seats=session['active_seats'], 
+                                   constraints=session.get('constraints', {}),
+                                   error=error_msg)
+
+        session['students'] = students_needing_seats
         return redirect(url_for('step4_roulette'))
     
     return render_template('step3_public_conditions.html', 
