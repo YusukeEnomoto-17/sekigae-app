@@ -336,6 +336,8 @@ def api_verify_arrangement():
                 if other_sid in neighbor_sids: messages.append(f'💖 {get_student_by_id(all_students, other_sid)["name"]}と隣')
                 else: messages.append(f'💔 {get_student_by_id(all_students, other_sid)["name"]}と離れている'); status = 'error'
         
+
+        
         for pair in constraints.get('apart', []):
             if sid in pair:
                 tags.append('apart')
