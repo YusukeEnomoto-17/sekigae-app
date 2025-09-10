@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, session, redirect, url_for, j
 from datetime import datetime
 
 app = Flask(__name__)
-# セッション情報を暗号化するためのキー。本番環境では推測されにくい文字列に変更してください。
 app.secret_key = os.environ.get('SECRET_KEY', 'your-default-secret-key')
 
 # --- ユーティリティ関数 ---
@@ -51,12 +50,10 @@ def get_neighbors(r, c, seat_map):
 class SeatingArranger:
     def __init__(self, students, active_seats, constraints):
         self.students = students
-        self.student_ids = [s['id'] for s in students]
+        self.student_ids = {s['id'] for s in students}
         self.active_seats = active_seats
         self.constraints = constraints
         self.seat_map = {pos: None for pos in self.active_seats}
-        self.rows = max(r for r, c in self.active_seats) + 1 if self.active_seats else 0
-        self.cols = max(c for r, c in self.active_seats) + 1 if self.active_seats else 0
 
     def _evaluate(self, arrangement):
         """配置を評価し、違反点の合計を返す（低いほど良い）"""
@@ -64,12 +61,14 @@ class SeatingArranger:
         student_positions = {sid: pos for pos, sid in arrangement.items() if sid is not None}
         
         for pair in self.constraints.get('apart', []):
-            pos1, pos2 = student_positions.get(pair[0]), student_positions.get(pair[1])
-            if pos1 and pos2 and pos2 in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
+            if pair[0] in student_positions and pair[1] in student_positions:
+                pos1, pos2 = student_positions[pair[0]], student_positions[pair[1]]
+                if pos2 in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
         
         for pair in self.constraints.get('together', []):
-            pos1, pos2 = student_positions.get(pair[0]), student_positions.get(pair[1])
-            if pos1 and pos2 and pos2 not in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
+            if pair[0] in student_positions and pair[1] in student_positions:
+                pos1, pos2 = student_positions[pair[0]], student_positions[pair[1]]
+                if pos2 not in get_neighbors(pos1[0], pos1[1], self.seat_map): score += 10
         
         if self.active_seats:
             sorted_seats = sorted(list(self.active_seats))
@@ -78,52 +77,98 @@ class SeatingArranger:
             if num_front_students > 0:
                 front_section_seats = set(sorted_seats[:num_front_students])
                 for sid in front_student_ids:
-                    student_pos = student_positions.get(sid)
-                    if student_pos and student_pos not in front_section_seats: score += 1
+                    if sid in student_positions and student_positions[sid] not in front_section_seats: score += 1
 
             back_student_ids = self.constraints.get('back', [])
             num_back_students = len(back_student_ids)
             if num_back_students > 0:
                 back_section_seats = set(sorted_seats[-num_back_students:])
                 for sid in back_student_ids:
-                    student_pos = student_positions.get(sid)
-                    if student_pos and student_pos not in back_section_seats: score += 1
+                    if sid in student_positions and student_positions[sid] not in back_section_seats: score += 1
         return score
 
-    def generate_initial_arrangement(self):
-        """初期配置を生成する"""
+    def solve(self):
+        """
+        新しい手続き的アルゴリズムで配置を生成する。
+        成功すれば配置を、失敗すればNoneを返す。
+        """
         arrangement = {pos: None for pos in self.active_seats}
-        placed_students = set()
+        placed_sids = set()
+
+        # 1. 固定席を配置
         for item in self.constraints.get('fixed', []):
             sid, pos = item['student_id'], tuple(item['pos'])
-            if pos in arrangement:
+            if pos in arrangement and arrangement[pos] is None and sid in self.student_ids:
                 arrangement[pos] = sid
-                placed_students.add(sid)
-        remaining_students = [sid for sid in self.student_ids if sid not in placed_students]
-        empty_seats = [pos for pos, sid in arrangement.items() if sid is None]
-        random.shuffle(remaining_students)
-        for i, seat in enumerate(empty_seats):
-            if i < len(remaining_students):
-                arrangement[seat] = remaining_students[i]
-        return arrangement
+                placed_sids.add(sid)
+            else: return None
 
-    def solve(self, max_iterations=5000):
-        """最適な配置を見つけるためのベストエフォート法"""
-        current_arrangement = self.generate_initial_arrangement()
-        current_score = self._evaluate(current_arrangement)
-        if current_score == 0: return current_arrangement
-        fixed_sids = {item['student_id'] for item in self.constraints.get('fixed', [])}
-        for _ in range(max_iterations):
-            movable_pos = [pos for pos, sid in current_arrangement.items() if sid and sid not in fixed_sids]
-            if len(movable_pos) < 2: break
-            pos1, pos2 = random.sample(movable_pos, 2)
-            new_arrangement = current_arrangement.copy()
-            new_arrangement[pos1], new_arrangement[pos2] = new_arrangement[pos2], new_arrangement[pos1]
-            new_score = self._evaluate(new_arrangement)
-            if new_score < current_score:
-                current_arrangement, current_score = new_arrangement, new_score
-            if current_score == 0: break
-        return current_arrangement
+        # 2. 最前列・最後列を配置
+        sorted_seats = sorted(list(self.active_seats))
+        
+        front_sids = [sid for sid in self.constraints.get('front', []) if sid not in placed_sids and sid in self.student_ids]
+        if front_sids:
+            available_front = [s for s in sorted_seats[:len(front_sids)] if arrangement[s] is None]
+            if len(available_front) < len(front_sids): return None
+            random.shuffle(front_sids)
+            for i, sid in enumerate(front_sids):
+                arrangement[available_front[i]] = sid
+                placed_sids.add(sid)
+
+        back_sids = [sid for sid in self.constraints.get('back', []) if sid not in placed_sids and sid in self.student_ids]
+        if back_sids:
+            available_back = [s for s in sorted_seats[-len(back_sids):] if arrangement[s] is None]
+            if len(available_back) < len(back_sids): return None
+            random.shuffle(back_sids)
+            for i, sid in enumerate(back_sids):
+                arrangement[available_back[i]] = sid
+                placed_sids.add(sid)
+        
+        # 3. くっつけたいペアを配置
+        together_pairs = [p for p in self.constraints.get('together', []) if p[0] not in placed_sids and p[1] not in placed_sids and p[0] in self.student_ids and p[1] in self.student_ids]
+        empty_seats = [pos for pos, sid in arrangement.items() if sid is None]
+        random.shuffle(empty_seats)
+        
+        for pair in together_pairs:
+            placed = False
+            for seat1 in empty_seats:
+                if arrangement[seat1] is None:
+                    neighbors = get_neighbors(seat1[0], seat1[1], self.seat_map)
+                    empty_neighbors = [n for n in neighbors if arrangement.get(n) is None]
+                    if empty_neighbors:
+                        seat2 = random.choice(empty_neighbors)
+                        arrangement[seat1], arrangement[seat2] = pair[0], pair[1]
+                        placed_sids.update(pair)
+                        empty_seats.remove(seat1)
+                        empty_seats.remove(seat2)
+                        placed = True
+                        break
+            if not placed: return None
+
+        # 4. 残りの生徒をランダムに配置
+        remaining_sids = [sid for sid in self.student_ids if sid not in placed_sids]
+        final_empty_seats = [pos for pos, sid in arrangement.items() if sid is None]
+        if len(remaining_sids) != len(final_empty_seats): return None
+
+        random.shuffle(remaining_sids)
+        for i, seat in enumerate(final_empty_seats):
+            arrangement[seat] = remaining_sids[i]
+
+        # 5. 最終検証
+        if self._evaluate(arrangement) == 0:
+            return arrangement
+        return None
+
+    def generate_initial_arrangement(self):
+        """ルーレット用の完全ランダム配置を生成する"""
+        arrangement = {pos: None for pos in self.active_seats}
+        students_to_place = [s['id'] for s in self.students]
+        random.shuffle(students_to_place)
+        empty_seats = list(self.active_seats)
+        for i, seat in enumerate(empty_seats):
+            if i < len(students_to_place):
+                arrangement[seat] = students_to_place[i]
+        return arrangement
 
 # --- Flask ルート定義 ---
 
@@ -223,7 +268,7 @@ def get_final_constraints():
 
 @app.route('/api/generate_arrangements')
 def api_generate_arrangements():
-    """席替え案を生成するAPI。条件を満たす解が見つかるまで試行する。"""
+    """席替え案を生成するAPI。新しい手続き的アルゴリズムを使用する。"""
     if 'students' not in session: return jsonify({"error": "No student data"}), 400
     
     students = session['students']
@@ -234,19 +279,26 @@ def api_generate_arrangements():
     
     solutions = []
     attempts = 0
-    while len(solutions) < 5 and attempts < 100:
+    while len(solutions) < 5 and attempts < 500: # 5個の解を最大500回試行して見つける
         arrangement = arranger.solve()
-        score = arranger._evaluate(arrangement)
-        if score == 0:
+        if arrangement and arrangement not in solutions:
             solutions.append(arrangement)
         attempts += 1
     
-    randoms = [arranger.generate_initial_arrangement() for _ in range(15)]
+    if not solutions:
+        return jsonify({
+            "error": "条件を満たす席替え案を見つけられませんでした。条件が厳しすぎるか、矛盾している可能性があります。",
+            "solutions": [], "randoms": []
+        }), 400
+
+    randoms_needed = 20 - len(solutions)
+    randoms = [arranger.generate_initial_arrangement() for _ in range(randoms_needed)]
     
     solutions_json = [[{'pos': pos, 'student': get_student_by_id(students, sid)} for pos, sid in sol.items()] for sol in solutions]
     randoms_json = [[{'pos': pos, 'student': get_student_by_id(students, sid)} for pos, sid in rnd.items()] for rnd in randoms]
     
     return jsonify({'solutions': solutions_json, 'randoms': randoms_json})
+
 
 @app.route('/ordered_arrangement', methods=['POST'])
 def ordered_arrangement():
@@ -301,8 +353,13 @@ def ordered_arrangement():
 def api_verify_arrangement():
     """最終配置が制約を満たしているか検証し、設定内容も返す"""
     if 'final_arrangement' not in session:
-        return jsonify({"error": "Final arrangement not found"}), 404
-    
+        # 印刷ページなどから戻ってきた時用に、セッションがクリアされていても
+        # トップページに戻すように誘導する
+        if 'students_original' not in session:
+             return jsonify({"error": "No data", "redirect": url_for('index')}), 404
+        else:
+             return jsonify({"error": "Final arrangement not found"}), 404
+
     arrangement_list = session['final_arrangement']
     arrangement = {tuple(item['pos']): item['student'] for item in arrangement_list if item and item.get('pos') and item.get('student')}
     
@@ -319,13 +376,10 @@ def api_verify_arrangement():
             if f['student_id'] == sid and tuple(f['pos']) == pos: messages.append('✅ 固定席')
         
         if sid in constraints.get('front', []):
-            if pos[0] == 0: messages.append('✅ 最前列')
-            else: messages.append('❌ 最前列違反'); status = 'error'
+             messages.append('✅ 最前列希望')
         
-        last_row = max(r for r, c in session['active_seats'])
         if sid in constraints.get('back', []):
-            if pos[0] == last_row: messages.append('✅ 最後列')
-            else: messages.append('❌ 最後列違反'); status = 'error'
+            messages.append('✅ 最後列希望')
 
         neighbor_sids = {arrangement[n_pos]['id'] for n_pos in get_neighbors(pos[0], pos[1], arrangement) if arrangement.get(n_pos)}
 
@@ -335,8 +389,6 @@ def api_verify_arrangement():
                 other_sid = pair[0] if pair[1] == sid else pair[1]
                 if other_sid in neighbor_sids: messages.append(f'💖 {get_student_by_id(all_students, other_sid)["name"]}と隣')
                 else: messages.append(f'💔 {get_student_by_id(all_students, other_sid)["name"]}と離れている'); status = 'error'
-        
-
         
         for pair in constraints.get('apart', []):
             if sid in pair:
@@ -371,3 +423,4 @@ def set_final_arrangement():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
