@@ -1,218 +1,280 @@
 <!-- templates/step4_roulette.html -->
 {% extends "layout.html" %}
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white p-8 rounded-xl shadow-md">
-    <div id="roulette-container" class="text-center">
-        <h2 class="text-2xl font-bold mb-4">席替え中...</h2>
-        <div class="w-24 h-24 border-8 border-dashed rounded-full animate-spin border-blue-600 mx-auto mb-4"></div>
-        <p class="text-gray-500 text-sm">AIが最適解を計算中です…</p>
-    </div>
-    
-    <div id="result-container" class="hidden">
-        <h2 class="text-3xl font-bold text-center mb-6 text-blue-600">🎉 席替え完了！ 🎉</h2>
-        
-        <div class="text-center mb-4 p-3 bg-gray-800 text-white rounded-md font-bold">
-            教卓（黒板）
-        </div>
-        <div id="result-grid" class="grid grid-cols-8 gap-2 mx-auto w-max mb-8">
-            <!-- 結果がここに表示されます -->
-        </div>
-
-        <div class="flex flex-wrap justify-center items-center gap-4">
-            <button id="verify-btn" class="bg-yellow-500 text-white font-bold rounded-full hover:bg-yellow-600 transition-colors duration-300 text-2xl w-16 h-16 flex items-center justify-center shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" title="条件達成状況の確認" disabled>
-                ？
+<div class="max-w-7xl mx-auto text-center">
+    <div id="roulette-area" class="relative w-full bg-gray-100 p-4 rounded-lg shadow-inner min-h-[60vh] flex items-center justify-center">
+        <!-- 初期メッセージ -->
+        <div id="initial-message" class="text-center">
+            <h2 class="text-3xl font-bold text-gray-700 mb-4">準備完了</h2>
+            <p class="text-gray-600 mb-8">下のボタンを押して、席替えを開始します。</p>
+            <button id="start-roulette" class="bg-blue-600 text-white font-bold py-4 px-8 rounded-md hover:bg-blue-700 transition-colors duration-300 text-xl shadow-lg">
+                席替えスタート！
             </button>
-            <a id="print-btn" href="{{ url_for('print_view') }}" target="_blank" class="bg-green-600 text-white font-bold py-3 px-6 rounded-md hover:bg-green-700 transition-colors duration-300 text-lg pointer-events-none opacity-50">
-                🖨️ 印刷用ページを開く
-            </a>
-            <a href="{{ url_for('step3_public_conditions') }}" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-600 transition-colors duration-300 text-lg">
-                ⚙️ 個別設定に戻る
-            </a>
-            <a href="{{ url_for('index') }}" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-600 transition-colors duration-300 text-lg">
-                🏠 最初からやり直す
-            </a>
+        </div>
+        
+        <!-- ルーレット表示エリア -->
+        <div id="roulette-display" class="hidden">
+             <div id="seat-map-container" class="grid gap-2" style="display: none;">
+                <!-- JavaScriptで座席が生成される -->
+            </div>
+            <p id="ai-message" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-gray-500 text-sm hidden"></p>
+        </div>
+        
+        <!-- 結果表示エリア -->
+        <div id="result-area" class="hidden text-center">
+            <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 mb-6 animate-pulse">新しい座席が決定しました！</h2>
+            <div id="final-seat-map-container" class="grid gap-2 max-w-5xl mx-auto mb-8">
+                <!-- JavaScriptで最終的な座席が生成される -->
+            </div>
+            <div class="flex flex-wrap justify-center items-center gap-4">
+                <a href="{{ url_for('print_view') }}" target="_blank" class="bg-green-600 text-white font-bold py-3 px-6 rounded-md hover:bg-green-700 transition-colors duration-300">
+                    印刷用ページを開く
+                </a>
+                 <button id="verify-button" class="bg-yellow-500 text-white font-bold py-3 px-6 rounded-md hover:bg-yellow-600 transition-colors duration-300">
+                    ？
+                </button>
+                <a href="{{ url_for('step3_public_conditions') }}" class="bg-gray-500 text-white font-bold py-3 px-6 rounded-md hover:bg-gray-600 transition-colors duration-300">
+                    個別設定に戻る
+                </a>
+                <a href="{{ url_for('index') }}" class="text-gray-600 hover:text-gray-800">最初から設定</a>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Verification Modal -->
-<div id="verify-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-6xl max-h-full overflow-y-auto">
+<!-- 条件確認モーダル -->
+<div id="verification-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-2xl font-bold">条件達成状況の確認</h3>
-            <button id="close-modal-btn" class="text-2xl font-bold">&times;</button>
+            <button id="close-modal" class="text-2xl font-bold">&times;</button>
         </div>
-        <div class="grid md:grid-cols-3 gap-6">
-            <div class="md:col-span-2">
-                <div class="text-center mb-2 p-2 bg-gray-800 text-white rounded-md font-bold text-sm">教卓</div>
-                <div id="verify-grid" class="grid grid-cols-8 gap-1 w-max mx-auto"></div>
-            </div>
-            <div class="text-sm">
-                <div id="verify-legend" class="p-4 bg-gray-50 rounded-lg">
-                    <h4 class="font-bold mb-2">凡例</h4>
-                    <p><span class="inline-block w-4 h-4 bg-green-100 border border-green-400 mr-2 align-middle"></span>条件クリア</p>
-                    <p><span class="inline-block w-4 h-4 bg-red-100 border border-red-400 mr-2 align-middle"></span>条件違反あり</p>
-                    <p><span class="text-red-600 font-bold" title="「離す」指定の生徒">💔</span> 「離す」指定</p>
-                    <p><span class="text-pink-600 font-bold" title="「くっつける」指定の生徒">💖</span> 「くっつける」指定</p>
+        <div class="flex-grow grid md:grid-cols-3 gap-6 overflow-hidden">
+            <!-- 座席表エリア -->
+            <div class="md:col-span-2 overflow-auto pr-4">
+                <div id="verification-seat-map" class="grid gap-2">
+                    <!-- Verification seat map here -->
                 </div>
-                <div id="verify-conditions-list" class="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 class="font-bold mb-2">設定した条件リスト</h4>
-                    <div id="conditions-list-content" class="space-y-2"></div>
+            </div>
+            <!-- 凡例＆条件リストエリア -->
+            <div class="overflow-auto pl-4 border-l">
+                 <!-- 凡例 -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-bold mb-3 text-lg">凡例</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-100 border border-green-400 mr-2"></span>条件を全て満たしています</li>
+                        <li class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-100 border border-red-400 mr-2"></span>条件違反があります</li>
+                        <li class="flex items-center"><span class="text-red-500">💔</span>：「離す」指定の生徒</li>
+                        <li class="flex items-center"><span class="text-pink-500">💖</span>：「くっつける」指定の生徒</li>
+                    </ul>
+                </div>
+                <!-- 設定した条件リスト -->
+                 <div id="constraints-list-container" class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-bold mb-3 text-lg">設定した条件リスト</h4>
+                    <div id="constraints-list" class="text-sm space-y-3"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const rouletteContainer = document.getElementById('roulette-container');
-    const resultContainer = document.getElementById('result-container');
-    const resultGrid = document.getElementById('result-grid');
-    const verifyBtn = document.getElementById('verify-btn');
-    const printBtn = document.getElementById('print-btn');
-    const verifyModal = document.getElementById('verify-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-    const verifyGrid = document.getElementById('verify-grid');
-    const conditionsListContent = document.getElementById('conditions-list-content');
+    const startBtn = document.getElementById('start-roulette');
+    const rouletteDisplay = document.getElementById('roulette-display');
+    const seatMapContainer = document.getElementById('seat-map-container');
+    const initialMessage = document.getElementById('initial-message');
+    const resultArea = document.getElementById('result-area');
+    const finalSeatMapContainer = document.getElementById('final-seat-map-container');
+    const aiMessage = document.getElementById('ai-message');
+    const verifyButton = document.getElementById('verify-button');
+
+    let solutions = [];
+    let randoms = [];
+    let allArrangements = [];
+    let rouletteInterval;
+    let finalArrangement;
     
     function createSeatElement(student) {
-        const div = document.createElement('div');
-        div.className = 'seat-cell flex items-center justify-center rounded-md text-sm font-semibold h-16';
-        if (student) { div.textContent = student.name; div.className += ' bg-blue-100 text-blue-800'; } 
-        else { div.className += ' bg-gray-200'; }
-        return div;
+        const seatDiv = document.createElement('div');
+        seatDiv.className = 'p-2 rounded-md aspect-video flex items-center justify-center text-center';
+        if (student) {
+            seatDiv.className += ' bg-blue-200 border border-blue-400';
+            seatDiv.innerHTML = `<span class="font-semibold text-sm">${student.name}</span>`;
+        } else {
+            seatDiv.className += ' bg-gray-200';
+        }
+        return seatDiv;
     }
 
-    function displayArrangement(grid, arrangement) {
-        const allPositions = arrangement.map(item => item.pos).filter(p => p);
-        if (allPositions.length === 0) return;
-        const maxRow = Math.max(...allPositions.map(pos => pos[0]));
-        const maxCol = Math.max(...allPositions.map(pos => pos[1]));
-        grid.innerHTML = '';
-        grid.style.gridTemplateColumns = `repeat(${maxCol + 1}, minmax(0, 1fr))`;
-        const seatMap = new Map(arrangement.map(item => [JSON.stringify(item.pos), item.student]));
+    function renderSeatMap(container, arrangement, verificationData = {}) {
+        container.innerHTML = '';
+        const maxRow = Math.max(...arrangement.map(s => s.pos[0]));
+        const maxCol = Math.max(...arrangement.map(s => s.pos[1]));
+        container.style.gridTemplateColumns = `repeat(${maxCol + 1}, 1fr)`;
+
+        const arrangementMap = new Map(arrangement.map(s => [s.pos.join(','), s.student]));
+
+        const blackboard = document.createElement('div');
+        blackboard.textContent = '教卓';
+        blackboard.className = 'col-span-full bg-gray-800 text-white text-center py-2 rounded-md font-bold mb-2';
+        container.appendChild(blackboard);
+
         for (let r = 0; r <= maxRow; r++) {
             for (let c = 0; c <= maxCol; c++) {
-                const key = JSON.stringify([r,c]);
-                if (seatMap.has(key)) { grid.appendChild(createSeatElement(seatMap.get(key))); } 
-                else { grid.appendChild(document.createElement('div')); }
+                const student = arrangementMap.get(`${r},${c}`);
+                if (student !== undefined) {
+                    const seatDiv = createSeatElement(student);
+                    if (student && verificationData[student.id]) {
+                         const v = verificationData[student.id];
+                         seatDiv.className = seatDiv.className.replace(/bg-\w+-\d+/g, v.status === 'ok' ? 'bg-green-100' : 'bg-red-100');
+                         seatDiv.className = seatDiv.className.replace(/border-\w+-\d+/g, v.status === 'ok' ? 'border-green-400' : 'border-red-400');
+                         
+                         let detailsHTML = '';
+                         if(v.tags.includes('apart')) detailsHTML += '<span class="text-red-500 text-xs">💔</span>';
+                         if(v.tags.includes('together')) detailsHTML += '<span class="text-pink-500 text-xs">💖</span>';
+                         
+                         if(v.messages.length > 0) {
+                            detailsHTML += `<div class="text-xs mt-1">${v.messages.join('<br>')}</div>`;
+                         }
+                         seatDiv.innerHTML = `<span class="font-semibold text-sm">${student.name}</span>${detailsHTML}`;
+                    }
+                    container.appendChild(seatDiv);
+                } else {
+                     container.appendChild(document.createElement('div'));
+                }
             }
         }
     }
 
-    async function startRoulette() {
-        try {
-            const response = await fetch("{{ url_for('api_generate_arrangements') }}");
-            if (!response.ok) throw new Error('Failed to generate arrangements');
-            const data = await response.json();
+    startBtn.addEventListener('click', async () => {
+        initialMessage.classList.add('hidden');
+        rouletteDisplay.classList.remove('hidden');
+        seatMapContainer.style.display = 'grid';
+        aiMessage.textContent = 'AIが最適解を計算中です…';
+        aiMessage.classList.remove('hidden');
 
-            if (!data.solutions || data.solutions.length === 0) {
-                 rouletteContainer.innerHTML = `
-                    <div class="bg-white p-8 rounded-xl shadow-md text-center">
-                        <h2 class="text-2xl font-bold text-red-600 mb-4">エラー</h2>
-                        <p class="text-gray-700 mb-6">条件を満たす席替え案が見つかりませんでした。<br>条件が厳しすぎる可能性があります。</p>
-                        <a href="{{ url_for('step3_public_conditions') }}" class="bg-blue-500 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-600 transition-colors duration-300 text-lg">
-                            &larr; 条件設定に戻る
-                        </a>
-                    </div>`;
+        try {
+            const response = await fetch('{{ url_for("api_generate_arrangements") }}');
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 alert('エラー: ' + (errorData.error || '席替え案の生成に失敗しました。'));
+                 location.reload();
                  return;
             }
-            // ★★★ 修正箇所 ★★★
-            rouletteContainer.innerHTML = `<h2 class="text-2xl font-bold mb-4">ルーレットスタート！</h2><div id="roulette-display" class="grid grid-cols-8 gap-2 mx-auto w-max mb-4 border-4 border-dashed border-gray-300 p-4 rounded-lg"></div><p class="text-gray-500 text-sm">AIが最適解を計算中です…</p>`;
-            const rouletteDisplay = document.getElementById('roulette-display');
-            const allArrangements = [...data.randoms, ...data.solutions];
-            let currentIndex = 0;
-            const rouletteInterval = setInterval(() => {
-                displayArrangement(rouletteDisplay, allArrangements[currentIndex % allArrangements.length]);
-                currentIndex++;
-            }, 150);
+            const data = await response.json();
+            solutions = data.solutions;
+            randoms = data.randoms;
 
-            setTimeout(async () => {
-                clearInterval(rouletteInterval);
-                rouletteContainer.classList.add('hidden');
-                resultContainer.classList.remove('hidden');
-                const finalChoice = data.solutions[Math.floor(Math.random() * data.solutions.length)];
-                displayArrangement(resultGrid, finalChoice);
-                
-                try {
-                    await fetch("{{ url_for('set_final_arrangement') }}", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ arrangement: finalChoice })
-                    });
-                    verifyBtn.disabled = false;
-                    printBtn.classList.remove('pointer-events-none', 'opacity-50');
-                } catch (e) {
-                    console.error("最終結果の保存に失敗しました:", e);
-                }
-            }, 5000);
-        } catch (error) {
-            console.error('Error:', error);
-            rouletteContainer.innerHTML = `<p class="text-red-500">エラーが発生しました。もう一度お試しください。</p>`;
-        }
-    }
-    
-    verifyBtn.addEventListener('click', async () => {
-        const response = await fetch("{{ url_for('api_verify_arrangement') }}");
-        const data = await response.json();
-        const { arrangement, verification, constraints, all_students } = data;
-        
-        const studentMap = new Map();
-        all_students.forEach(s => studentMap.set(s.id, s.name));
-        
-        const allPositions = arrangement.map(item => item.pos).filter(p => p);
-        if (allPositions.length === 0) return;
-        
-        const maxRow = Math.max(...allPositions.map(pos => pos[0]));
-        const maxCol = Math.max(...allPositions.map(pos => pos[1]));
-        verifyGrid.innerHTML = '';
-        verifyGrid.style.gridTemplateColumns = `repeat(${maxCol + 1}, minmax(0, 1fr))`;
-        
-        const seatMap = new Map(arrangement.map(item => [JSON.stringify(item.pos), item.student]));
-
-        for (let r = 0; r <= maxRow; r++) {
-            for (let c = 0; c <= maxCol; c++) {
-                const key = JSON.stringify([r, c]);
-                if (seatMap.has(key)) {
-                    const student = seatMap.get(key);
-                    const seatDiv = document.createElement('div');
-                    seatDiv.className = 'p-1 border rounded text-xs flex flex-col justify-center items-center h-20';
-                    if (student) {
-                        const v_info = verification[student.id] || { status: 'ok', messages: [], tags: [] };
-                        let nameHtml = `<span class="font-bold">${student.name}</span>`;
-                        if (v_info.tags.includes('apart')) nameHtml += ` <span class="text-red-600 font-bold" title="「離す」指定の生徒">💔</span>`;
-                        if (v_info.tags.includes('together')) nameHtml += ` <span class="text-pink-600 font-bold" title="「くっつける」指定の生徒">💖</span>`;
-                        seatDiv.innerHTML = `${nameHtml}<div class="mt-1 text-gray-600">${v_info.messages.join('<br>')}</div>`;
-                        if (v_info.status === 'error') seatDiv.classList.add('bg-red-100', 'border-red-400');
-                        else seatDiv.classList.add('bg-green-100', 'border-green-400');
-                    } else { seatDiv.classList.add('bg-gray-200'); }
-                    verifyGrid.appendChild(seatDiv);
-                } else { verifyGrid.appendChild(document.createElement('div')); }
+            if (solutions.length === 0) {
+                 alert('エラー: 条件を満たす席替え案が見つかりませんでした。条件設定に戻ります。');
+                 window.location.href = "{{ url_for('step3_public_conditions') }}";
+                 return;
             }
-        }
-        
-        let html = '';
-        const getName = (id) => studentMap.get(id) || `ID:${id}`;
-        if (constraints.apart && constraints.apart.length > 0) html += `<div><strong>💔 離すペア:</strong><ul class="list-disc pl-5">${constraints.apart.map(p => `<li>${getName(p[0])} & ${getName(p[1])}</li>`).join('')}</ul></div>`;
-        if (constraints.together && constraints.together.length > 0) html += `<div><strong>💖 くっつけるペア:</strong><ul class="list-disc pl-5">${constraints.together.map(p => `<li>${getName(p[0])} & ${getName(p[1])}</li>`).join('')}</ul></div>`;
-        if (constraints.front && constraints.front.length > 0) html += `<div><strong>👓 最前列:</strong> ${constraints.front.map(id => getName(id)).join(', ')}</div>`;
-        if (constraints.back && constraints.back.length > 0) html += `<div><strong>🦒 最後列:</strong> ${constraints.back.map(id => getName(id)).join(', ')}</div>`;
-        if (constraints.fixed && constraints.fixed.length > 0) html += `<div><strong>📌 固定席:</strong><ul class="list-disc pl-5">${constraints.fixed.map(f => `<li>${getName(f.student_id)} → (タテ${f.pos[0]+1}, ヨコ${f.pos[1]+1})</li>`).join('')}</ul></div>`;
-        conditionsListContent.innerHTML = html || '<p>特別な条件はありません。</p>';
 
-        verifyModal.classList.remove('hidden');
-        verifyModal.classList.add('flex');
+            allArrangements = [...randoms, ...solutions];
+            finalArrangement = solutions[Math.floor(Math.random() * solutions.length)];
+
+            let count = 0;
+            rouletteInterval = setInterval(() => {
+                renderSeatMap(seatMapContainer, allArrangements[count % allArrangements.length]);
+                count++;
+            }, 100);
+
+            setTimeout(() => {
+                clearInterval(rouletteInterval);
+                rouletteDisplay.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                renderSeatMap(finalSeatMapContainer, finalArrangement);
+                
+                fetch('{{ url_for("set_final_arrangement") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ arrangement: finalArrangement })
+                });
+
+            }, 5000);
+
+        } catch (error) {
+            console.error('Error fetching arrangements:', error);
+            alert('サーバーとの通信に失敗しました。');
+            location.reload();
+        }
+    });
+    
+    // Modal Logic
+    const modal = document.getElementById('verification-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+
+    verifyButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch('{{ url_for("api_verify_arrangement") }}');
+            if(!response.ok) {
+                const errorData = await response.json();
+                if(errorData.redirect) {
+                    alert("セッションが切れました。最初のページに戻ります。");
+                    window.location.href = errorData.redirect;
+                } else {
+                    alert('エラー: ' + (errorData.error || '確認データの取得に失敗しました。'));
+                }
+                return;
+            }
+            const data = await response.json();
+            
+            const verificationSeatMap = document.getElementById('verification-seat-map');
+            renderSeatMap(verificationSeatMap, data.arrangement, data.verification);
+
+            // Render constraints list
+            const constraintsList = document.getElementById('constraints-list');
+            const studentsMap = new Map(data.all_students.map(s => [s.id, s.name]));
+            constraintsList.innerHTML = '';
+            
+            const createList = (title, items) => {
+                if (items && items.length > 0) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<h5 class="font-semibold">${title}</h5>`;
+                    const ul = document.createElement('ul');
+                    ul.className = 'list-disc list-inside text-gray-700';
+                    items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        ul.appendChild(li);
+                    });
+                    div.appendChild(ul);
+                    constraintsList.appendChild(div);
+                }
+            };
+            
+            createList('💔 離すペア:', data.constraints.apart?.map(p => `${studentsMap.get(p[0])} と ${studentsMap.get(p[1])}`));
+            createList('💖 くっつけるペア:', data.constraints.together?.map(p => `${studentsMap.get(p[0])} と ${studentsMap.get(p[1])}`));
+            createList('👓 最前列:', data.constraints.front?.map(id => studentsMap.get(id)));
+            createList('🦒 最後列:', data.constraints.back?.map(id => studentsMap.get(id)));
+            createList('📌 固定席:', data.constraints.fixed?.map(f => `${studentsMap.get(f.student_id)} → (タテ${f.pos[0]+1}, ヨコ${f.pos[1]+1})`));
+            createList('✈️ 除外:', data.constraints.exclude?.map(id => studentsMap.get(id)));
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } catch(e) {
+            console.error(e);
+            alert("確認データの表示中にエラーが発生しました。");
+        }
     });
 
     closeModalBtn.addEventListener('click', () => {
-        verifyModal.classList.add('hidden');
-        verifyModal.classList.remove('flex');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     });
 
-    startRoulette();
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    });
 });
 </script>
 {% endblock %}
+
